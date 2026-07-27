@@ -1,20 +1,24 @@
 from pypdf import PdfReader
 
-
 class DocumentLoader:
 
     @staticmethod
-    def load_pdf(file_path: str):
+    def load_pdf(file_path):
 
         reader = PdfReader(file_path)
 
-        text = ""
+        pages = []
 
-        for page in reader.pages:
+        for page_number, page in enumerate(reader.pages, start=1):
 
-            page_text = page.extract_text()
+            text = page.extract_text()
 
-            if page_text:
-                text += page_text + "\n"
+            if text is None:
+                text = ""
 
-        return text
+            pages.append({
+                "page": page_number,
+                "text": text.strip()
+            })
+
+        return pages

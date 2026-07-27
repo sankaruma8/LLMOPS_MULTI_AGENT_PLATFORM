@@ -1,20 +1,28 @@
 from database.supabase_client import supabase
 
 
-def save_conversation(user_message, assistant_message):
-    data = {
-        "user_message": user_message,
-        "assistant_message": assistant_message
-    }
+def save_conversation(session_id, user_message, assistant_message):
+    supabase.table("chat_history").insert({
+        "session_id": session_id,
+        "role": "user",
+        "message": user_message
+    }).execute()
 
-    supabase.table("conversations").insert(data).execute()
-def get_history():
+    supabase.table("chat_history").insert({
+        "session_id": session_id,
+        "role": "assistant",
+        "message": assistant_message
+    }).execute()
+
+
+def get_history(session_id):
     response = (
         supabase
-        .table("conversations")
+        .table("chat_history")
         .select("*")
-        .order("created_at", desc=True)
+        .eq("session_id", session_id)
+        .order("created_at")
         .execute()
     )
 
-    return response.data    
+    return response.data

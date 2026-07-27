@@ -1,0 +1,54 @@
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+.env
+.venv
+venv
+env
+
+# Data (ephemeral - rebuilt on deploy)
+chroma_db/
+uploads/
+logs/
+mlruns/
+
+# Test files (not needed in production)
+test_*.py
+test_*.log
+tests/
+temp_*.json
+start_server*.py
+error.log
+server.log
+stdout.log
+stderr.log
+
+# Build artifacts
+.pytest_cache
+.coverage
+htmlcov
+*.egg-info
+dist
+build
+*.log
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+docker-compose.yml
+
+# Docs
+database/schema*.sql
+Makefile
+README.md

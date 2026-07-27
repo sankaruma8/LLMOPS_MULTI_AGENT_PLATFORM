@@ -1,0 +1,44 @@
+services:
+  - type: web
+    name: llmops-api
+    runtime: image
+    image:
+      url: .
+    dockerfilePath: Dockerfile
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_KEY
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true
+      - key: TAVILY_API_KEY
+        sync: false
+      - key: LANGCHAIN_TRACING_V2
+        value: "false"
+      - key: MLFLOW_TRACKING_URI
+        value: ""
+      - key: APP_WORKERS
+        value: "2"
+      - key: APP_ENV
+        value: "production"
+    healthCheckPath: /health
+    autoDeploy: true
+
+  - type: web
+    name: llmops-frontend
+    runtime: image
+    image:
+      url: .
+    dockerfilePath: Dockerfile.frontend
+    envVars:
+      - key: BACKEND_URL
+        fromService:
+          name: llmops-api
+          type: web
+          property: host
+    autoDeploy: true
