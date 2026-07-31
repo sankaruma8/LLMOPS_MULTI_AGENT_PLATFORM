@@ -7,6 +7,9 @@ pyjwt==2.8.0
 
 # LLM & Agents
 langchain==0.0.350
+langchain-core==0.1.9
+langchain-community==0.0.9
+langsmith==0.0.92
 langgraph==0.0.20
 groq==0.4.2
 openai==1.6.1
@@ -41,7 +44,6 @@ pypdf==3.17.1
 tiktoken==0.5.2
 beautifulsoup4==4.12.2
 lxml==4.9.4
-langchain-text-splitters==0.0.1
 
 # Math & Code
 numexpr==2.8.8
