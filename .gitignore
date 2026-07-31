@@ -13,6 +13,7 @@ chroma_db/
 uploads/
 logs/
 mlruns/
+dataset/
 
 # Test files (not needed in production)
 test_*.py
@@ -47,6 +48,10 @@ Thumbs.db
 
 # Docker
 docker-compose.yml
+
+# Monitoring data (docker volumes are named, this is for bind-mounted locals)
+prometheus_data/
+grafana_data/
 
 # Docs
 database/schema*.sql

@@ -24,11 +24,11 @@ def test_planner_agent_all_routes():
     from agents.planner_agent import planner
 
     routes = {
-        "CHAT": ["Hello", "Hi", "Hey", "Good morning", "Thanks"],
+        "CHAT": ["Hello", "Hi", "Hey", "Good morning", "Thanks", "Explain AI", "What is deep learning?"],
         "WEB": ["Latest news", "Today's weather", "Current events", "Breaking news"],
-        "RESEARCH": ["Research this", "Analyze sources", "Deep dive", "Comprehensive analysis"],
-        "TOOL": ["Calculate 2 + 2", "Run code", "Execute Python", "Extract from pdf"],
-        "RAG": ["Explain AI", "What is deep learning?", "Tell me about transformers"]
+        "RESEARCH": ["Research this", "Analyze sources", "Deep dive", "Comprehensive analysis", "latest research on AI"],
+        "TOOL": ["Calculate 2 + 2", "Run code", "Execute Python"],
+        "RAG": ["Extract from pdf", "Summarize my uploaded notes", "Tell me about the uploaded document"]
     }
     for route, queries in routes.items():
         for query in queries:

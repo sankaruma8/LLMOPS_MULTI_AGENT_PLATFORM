@@ -70,5 +70,5 @@ st.markdown("""
 | **RAG** | ChromaDB + Sentence-Transformers |
 | **Database** | Supabase PostgreSQL |
 | **Auth** | Supabase Auth + JWT |
-| **Monitoring** | MLflow + LangSmith |
+| **Monitoring** | Prometheus + Grafana |
 """)

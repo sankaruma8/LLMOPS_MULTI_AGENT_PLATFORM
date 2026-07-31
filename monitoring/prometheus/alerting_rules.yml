@@ -1,0 +1,51 @@
+groups:
+  - name: llmops-alerts
+    rules:
+      - alert: ApiDown
+        expr: up{job="llmops-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "LLMOps API is down"
+          description: "The LLMOps API has been unreachable for more than 1 minute."
+
+      - alert: HighErrorRate
+        expr: |
+          sum(rate(llmops_http_requests_total{status=~"5.."}[5m]))
+          / sum(rate(llmops_http_requests_total[5m])) > 0.05
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High 5xx error rate"
+          description: "More than 5% of requests failed with 5xx over the last 5 minutes."
+
+      - alert: HighQueryLatency
+        expr: |
+          histogram_quantile(0.95, sum(rate(llmops_query_latency_seconds_bucket[5m])) by (le, route)) > 15
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High p95 query latency"
+          description: "p95 latency exceeds 15 seconds on route {{ $labels.route }}."
+
+      - alert: LowSuccessRate
+        expr: llmops_success_rate_percent < 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Low answer success rate"
+          description: "Answer validation success rate dropped below 80%."
+
+      - alert: HighErrorCount
+        expr: |
+          sum(increase(llmops_errors_total[10m])) > 20
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Elevated error count"
+          description: "More than 20 errors recorded in the last 10 minutes."

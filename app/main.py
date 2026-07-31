@@ -9,7 +9,7 @@ from api.upload import router as upload_router
 from api.auth import router as auth_router
 from middleware.rate_limiter import RateLimitMiddleware, rate_limiter
 from app.dependencies import get_current_user
-from monitoring.metrics import metrics, tracker
+from monitoring.metrics import metrics, tracker, sync_prometheus_metrics
 from core import config_manager
 from typing import Optional
 
@@ -29,6 +29,17 @@ app.add_middleware(
 
 app.include_router(auth_router)
 app.include_router(upload_router)
+
+
+def _add_prometheus(app):
+    try:
+        from monitoring.prometheus_metrics import PrometheusMiddleware
+        app.add_middleware(PrometheusMiddleware)
+    except Exception as e:
+        print(f"Prometheus middleware not enabled: {e}")
+
+
+_add_prometheus(app)
 
 
 @app.on_event("startup")
@@ -73,6 +84,7 @@ async def home():
             "history": "GET /history/{session_id}",
             "monitoring": {
                 "metrics": "GET /metrics",
+                "prometheus": "GET /prometheus/metrics",
                 "system": "GET /system/status"
             },
             "docs": "GET /docs"
@@ -106,7 +118,7 @@ async def chat(
     user: Optional[dict] = Depends(get_current_user)
 ):
     from core.security import InputSanitizer, security_middleware
-    from core.security import AuditLogger
+    from core.security import audit_logger
 
     validation = security_middleware.validate_request({
         "session_id": request.session_id,
@@ -114,6 +126,11 @@ async def chat(
     })
 
     if not validation["valid"]:
+        audit_logger.log(
+            action="chat.rejected",
+            user_id=user["email"] if user else "anonymous",
+            details={"errors": validation["errors"], "message_length": len(request.message)}
+        )
         return {"success": False, "errors": validation["errors"]}
 
     sanitized_message = InputSanitizer.sanitize_text(request.message)
@@ -133,6 +150,17 @@ async def chat(
         latency_ms=latency_ms,
         is_valid=True,
         agent_name=result["route"]
+    )
+
+    audit_logger.log(
+        action="chat.completed",
+        user_id=user["email"] if user else "anonymous",
+        resource=result["route"],
+        details={
+            "message_length": len(sanitized_message),
+            "response_length": len(result["answer"]),
+            "latency_ms": round(latency_ms, 2)
+        }
     )
 
     return {
@@ -214,6 +242,15 @@ async def get_metrics():
     }
 
 
+@app.get("/prometheus/metrics")
+async def get_prometheus_metrics():
+    from fastapi.responses import Response
+    from monitoring.prometheus_metrics import metrics_response
+    sync_prometheus_metrics()
+    body, content_type = metrics_response()
+    return Response(content=body, media_type=content_type)
+
+
 @app.get("/system/status")
 async def system_status():
     return {
@@ -229,6 +266,27 @@ async def system_status():
             }
         }
     }
+
+
+@app.get("/system/audit")
+async def system_audit(
+    limit: int = 100,
+    action: Optional[str] = None,
+    user_id: Optional[str] = None
+):
+    from core.security import audit_logger
+    entries = audit_logger.get_entries(
+        user_id=user_id,
+        action=action,
+        limit=max(1, min(limit, 1000))
+    )
+    return {"success": True, "data": entries}
+
+
+@app.get("/system/audit/stats")
+async def system_audit_stats():
+    from core.security import audit_logger
+    return {"success": True, "data": audit_logger.get_stats()}
 
 
 @app.get("/cache/stats")

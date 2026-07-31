@@ -142,6 +142,14 @@ async def login(request: LoginRequest):
 
             access_token = create_access_token(response.user.id, request.email)
 
+            from core.security import audit_logger
+            audit_logger.log(
+                action="auth.login",
+                user_id=response.user.id,
+                resource="auth",
+                details={"email": request.email}
+            )
+
             return AuthResponse(
                 success=True,
                 message="Login successful",

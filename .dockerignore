@@ -14,6 +14,7 @@ chroma_db
 uploads
 logs
 mlruns
+dataset
 .pytest_cache
 .coverage
 htmlcov

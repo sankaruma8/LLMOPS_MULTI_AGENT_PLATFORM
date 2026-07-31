@@ -8,6 +8,15 @@ API_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
 
 st.title("📊 Monitoring & System Status")
 
+st.markdown(
+    """
+    | Service | URL |
+    |---------|-----|
+    | 🔍 Prometheus | `http://localhost:9090` |
+    | 📈 Grafana | `http://localhost:3000` (admin / admin) |
+    """
+)
+
 tab1, tab2, tab3, tab4 = st.tabs(["📈 Metrics", "🖥️ System", "🔍 Audit Log", "⚡ Rate Limits"])
 
 with tab1:

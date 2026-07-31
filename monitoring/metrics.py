@@ -48,15 +48,21 @@ class MetricsCollector:
             if agent_name:
                 self._agent_latencies[agent_name].append(latency_ms)
 
+        _prometheus_record_query(route, latency_ms, is_valid, token_count)
+
     def record_error(self, error_type: str, component: str):
 
         with self._lock:
             self._error_counts[f"{component}:{error_type}"] += 1
 
+        _prometheus_record_error(error_type, component)
+
     def record_custom(self, metric_name: str, value: float):
 
         with self._lock:
             self._custom_metrics[metric_name].append(value)
+
+        _prometheus_record_custom(metric_name, value)
 
     def _calculate_percentile(self, data: deque, percentile: float) -> float:
 
@@ -250,3 +256,35 @@ class TrackingContext:
 
 metrics = MetricsCollector(window_size=10000)
 tracker = PerformanceTracker()
+
+
+def _prometheus_record_query(route, latency_ms, is_valid, token_count):
+    try:
+        from monitoring import prometheus_metrics
+        prometheus_metrics.record_query(route, latency_ms, is_valid, token_count)
+    except Exception:
+        pass
+
+
+def _prometheus_record_error(error_type, component):
+    try:
+        from monitoring import prometheus_metrics
+        prometheus_metrics.record_error(error_type, component)
+    except Exception:
+        pass
+
+
+def _prometheus_record_custom(metric_name, value):
+    try:
+        from monitoring import prometheus_metrics
+        prometheus_metrics.record_custom(metric_name, value)
+    except Exception:
+        pass
+
+
+def sync_prometheus_metrics():
+    try:
+        from monitoring import prometheus_metrics
+        prometheus_metrics.sync_from_summary(metrics.get_summary())
+    except Exception:
+        pass
