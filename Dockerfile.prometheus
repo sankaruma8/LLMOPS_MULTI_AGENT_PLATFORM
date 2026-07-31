@@ -8,3 +8,5 @@ RUN mkdir -p /prometheus && chown -R nobody:nogroup /prometheus
 USER nobody
 
 EXPOSE 9090
+
+CMD ["/bin/sh", "-c", "sed -i \"s|host.docker.internal:8000|${API_HOST}:8000|g\" /etc/prometheus/prometheus.yml && exec prometheus --config.file=/etc/prometheus/prometheus.yml --storage.tsdb.path=/prometheus --storage.tsdb.retention.time=15d --web.listen-address=0.0.0.0:9090"]

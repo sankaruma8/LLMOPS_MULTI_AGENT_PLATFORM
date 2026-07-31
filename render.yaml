@@ -48,10 +48,6 @@ services:
           name: llmops-api
           type: web
           property: host
-    startCommand: >
-      /bin/sh -c 'sed -i s|host.docker.internal:8000|$${API_HOST}|g /etc/prometheus/prometheus.yml &&
-      exec prometheus --config.file=/etc/prometheus/prometheus.yml --storage.tsdb.path=/prometheus
-      --storage.tsdb.retention.time=15d --web.listen-address=0.0.0.0:9090'
     autoDeploy: false
 
   - type: web
@@ -66,5 +62,4 @@ services:
         sync: false
       - key: GF_USERS_ALLOW_SIGN_UP
         value: "false"
-    startCommand: grafana server --homepath=/usr/share/grafana
     autoDeploy: false
