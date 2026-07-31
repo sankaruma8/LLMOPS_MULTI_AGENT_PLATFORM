@@ -1,9 +1,7 @@
 services:
   - type: web
     name: llmops-api
-    runtime: image
-    image:
-      url: .
+    runtime: docker
     dockerfilePath: Dockerfile
     envVars:
       - key: GROQ_API_KEY
@@ -29,9 +27,7 @@ services:
 
   - type: web
     name: llmops-frontend
-    runtime: image
-    image:
-      url: .
+    runtime: docker
     dockerfilePath: Dockerfile.frontend
     envVars:
       - key: BACKEND_URL
@@ -43,18 +39,15 @@ services:
 
   - type: web
     name: llmops-prometheus
-    runtime: image
-    image:
-      url: .
+    runtime: docker
     dockerfilePath: Dockerfile.prometheus
     plan: free
     envVars:
       - key: API_HOST
-        value: "host.docker.internal:8000"
-    disk:
-      name: prometheus-data
-      mountPath: /prometheus
-      sizeGB: 1
+        fromService:
+          name: llmops-api
+          type: web
+          property: host
     startCommand: >
       /bin/sh -c 'sed -i s|host.docker.internal:8000|$${API_HOST}|g /etc/prometheus/prometheus.yml &&
       exec prometheus --config.file=/etc/prometheus/prometheus.yml --storage.tsdb.path=/prometheus
@@ -63,9 +56,7 @@ services:
 
   - type: web
     name: llmops-grafana
-    runtime: image
-    image:
-      url: .
+    runtime: docker
     dockerfilePath: Dockerfile.grafana
     plan: free
     envVars:
@@ -75,9 +66,5 @@ services:
         sync: false
       - key: GF_USERS_ALLOW_SIGN_UP
         value: "false"
-    disk:
-      name: grafana-data
-      mountPath: /var/lib/grafana
-      sizeGB: 1
     startCommand: grafana server --homepath=/usr/share/grafana
     autoDeploy: false
