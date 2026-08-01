@@ -102,9 +102,20 @@ memory/          conversation history manager
 prompts/         system prompts and prompt builders
 rag/             document loading, chunking, embeddings, vector store
 frontend/        Streamlit UI
-docs/            design / algorithm documentation
+docs/            project documentation
 tests/           unit tests
 ```
+
+## Documentation
+
+| Document | Contents |
+|----------|----------|
+| [docs/setup.md](docs/setup.md) | Installation, environment, Supabase tables, running locally, deploy |
+| [docs/architecture.md](docs/architecture.md) | System design, components, data flow |
+| [docs/api_reference.md](docs/api_reference.md) | Endpoint-by-endpoint API reference |
+| [docs/user_guide.md](docs/user_guide.md) | How to use the app + troubleshooting |
+| [docs/PROJECT_REPORT.md](docs/PROJECT_REPORT.md) | College report (abstract, methodology, results) |
+| [docs/algorithm_and_dataset.md](docs/algorithm_and_dataset.md) | Algorithm and dataset write-up |
 
 ## License
 
