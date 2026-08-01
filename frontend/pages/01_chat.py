@@ -31,16 +31,13 @@ with st.sidebar:
     |-------|---------|
     | 💬 **CHAT** | hello, thanks, greetings |
     | 🔍 **WEB** | latest, news, weather |
-    | 📚 **RESEARCH** | analyze, compare, investigate |
-    | 🔧 **TOOL** | calculate, code, extract |
-    | 📖 **RAG** | explain, what is, tell me |
+    | 📖 **RAG** | questions about uploaded docs |
     """)
 
     st.markdown("### Tips")
     st.markdown("- Upload docs first for RAG answers")
-    st.markdown("- Try: 'Calculate 2^10'")
     st.markdown("- Try: 'Latest AI news'")
-    st.markdown("- Try: 'Explain transformers'")
+    st.markdown("- Try: 'What did I upload?'")
 
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):

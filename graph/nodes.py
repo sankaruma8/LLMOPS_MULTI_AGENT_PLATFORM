@@ -1,31 +1,25 @@
 from agents.planner_agent import planner
 from agents.response_agent import get_response
-from agents.web_agent import web_search, search_web, format_web_results
-from agents.research_agent import research_search
+from agents.web_agent import search_web, format_web_results
 from agents.retriever_agent import RetrieverAgent
-from agents.tool_agent import classify_tool, process_with_tool
-from rag.rag_pipeline import RAGPipeline
 from agents.validator_agent import validate_answer_standalone
 from memory.memory_manager import memory_manager, save_message
 from prompts.response_prompt import build_chat_prompt, build_hybrid_prompt
 
 
-rag = RAGPipeline()
 retriever_agent = RetrieverAgent()
 
 
 def memory_node(state):
     session_id = state["session_id"]
     state["history"] = memory_manager.get_optimized_history(session_id)
-    state["user_memories"] = []
     state["rag_context"] = ""
     state["web_context"] = ""
     state["available_docs"] = []
     state["routes_tried"] = []
 
     try:
-        doc_list = rag.retriever.get_all_documents()
-        state["available_docs"] = doc_list
+        state["available_docs"] = retriever_agent.retriever.get_all_documents()
     except Exception:
         state["available_docs"] = []
 
@@ -57,7 +51,6 @@ def chat_node(state):
     prompt = build_chat_prompt(
         state["question"],
         state["history"],
-        state.get("user_memories", []),
         doc_info=doc_info
     )
 
@@ -140,108 +133,6 @@ def web_node(state):
 
     state["routes_tried"].append("WEB")
     print("\n=== WEB Agent ===")
-    return state
-
-
-def research_node(state):
-    try:
-        results = search_web(state["question"])
-
-        doc_chunks = []
-        if rag:
-            try:
-                query_embedding = rag.embedder.create_embeddings([state["question"]])[0]
-                doc_chunks = rag.retriever.retrieve(query_embedding)
-            except Exception:
-                pass
-
-        state["answer"] = research_search(state["question"], results, rag)
-        state["sources"] = [r["url"] for r in results[:3]] if results else []
-
-    except Exception as e:
-        print(f"Research failed: {e}")
-        state["answer"] = "I encountered an error during research."
-
-    state["sources"] = state.get("sources", [])
-    state["routes_tried"].append("RESEARCH")
-    print("\n=== RESEARCH Agent ===")
-    return state
-
-
-def tool_node(state):
-    try:
-        tool_name = classify_tool(state["question"])
-
-        if tool_name == "CALCULATOR":
-            from tools.calculator import extract_math_from_query, calculate
-            math_expr = extract_math_from_query(state["question"])
-            result = calculate(math_expr)
-            state["answer"] = get_response(
-                f"Tool Result: {result}\nOriginal Question: {state['question']}\n\nFormat the result into a clear, helpful response.",
-                system_prompt="You are a helpful math assistant. Format the calculation result clearly."
-            )
-        elif tool_name == "PYTHON":
-            from tools.python_tool import extract_python_from_query, execute_code
-            code = extract_python_from_query(state["question"])
-            result = execute_code(code)
-            if result["success"]:
-                state["answer"] = get_response(
-                    f"Code Result: {result.get('output', 'No output')}\nOriginal Question: {state['question']}\n\nExplain the result.",
-                    system_prompt="You are a helpful coding assistant."
-                )
-            else:
-                state["answer"] = f"Code execution error: {result['error']}"
-        else:
-            state["answer"] = ""
-
-        state["tool_used"] = tool_name
-        state["sources"] = []
-
-    except Exception as e:
-        print(f"Tool agent failed: {e}")
-        state["answer"] = ""
-        state["tool_used"] = None
-        state["sources"] = []
-
-    state["routes_tried"].append("TOOL")
-    print("\n=== TOOL Agent ===")
-    return state
-
-
-def hybrid_node(state):
-    """Combines whatever sources succeeded for a comprehensive answer."""
-    question = state["question"]
-    rag_ctx = state.get("rag_context", "")
-    web_ctx = state.get("web_context", "")
-    history = state.get("history", [])
-    doc_info = ""
-    if state.get("available_docs"):
-        doc_names = list(set(d if isinstance(d, str) else d.get("filename", "doc") for d in state["available_docs"]))
-        doc_info = f"Available documents: {', '.join(doc_names[:10])}\n"
-
-    if not rag_ctx and not web_ctx:
-        prompt = build_chat_prompt(question, history, [], doc_info=doc_info)
-        state["answer"] = get_response(prompt)
-    else:
-        prompt = build_hybrid_prompt(
-            question,
-            rag_context=rag_ctx,
-            web_context=web_ctx,
-            history=history
-        )
-
-        system = (
-            "You are a comprehensive AI assistant. You have access to multiple information sources. "
-            "Combine information from ALL available sources to give the most complete answer possible. "
-            "If sources agree, reinforce the answer. If they conflict, note the discrepancy. "
-            "Always provide a clear, well-structured response."
-        )
-
-        state["answer"] = get_response(prompt, system_prompt=system)
-
-    state["routes_tried"].append("HYBRID")
-    print("\n=== HYBRID Agent ===")
-    print(f"  Sources: RAG={'yes' if rag_ctx else 'no'} WEB={'yes' if web_ctx else 'no'}")
     return state
 
 

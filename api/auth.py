@@ -1,8 +1,8 @@
-from fastapi import APIRouter, HTTPException, Depends, Request
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, EmailStr
 from typing import Optional
 from database.supabase_client import supabase
-from middleware.rate_limiter import rate_limiter
+from app.config import settings
 import jwt
 import time
 from datetime import datetime, timedelta
@@ -44,13 +44,13 @@ def create_access_token(user_id: str, email: str, expires_delta: timedelta = Non
         "iat": datetime.utcnow()
     }
 
-    return jwt.encode(payload, "SECRET_KEY", algorithm="HS256")
+    return jwt.encode(payload, settings.SECRET_KEY, algorithm="HS256")
 
 
 def verify_token(token: str) -> dict:
 
     try:
-        payload = jwt.decode(token, "SECRET_KEY", algorithms=["HS256"])
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
         return payload
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Token has expired")
@@ -60,13 +60,6 @@ def verify_token(token: str) -> dict:
 
 @router.post("/signup", response_model=AuthResponse)
 async def signup(request: SignupRequest):
-
-    rate_limit = rate_limiter.check_rate_limit(request)
-    if not rate_limit["allowed"]:
-        raise HTTPException(
-            status_code=429,
-            detail=f"Rate limit exceeded. Retry after {rate_limit['retry_after']} seconds"
-        )
 
     try:
         response = supabase.auth.sign_up({
@@ -121,13 +114,6 @@ async def signup(request: SignupRequest):
 @router.post("/login", response_model=AuthResponse)
 async def login(request: LoginRequest):
 
-    rate_limit = rate_limiter.check_rate_limit(request)
-    if not rate_limit["allowed"]:
-        raise HTTPException(
-            status_code=429,
-            detail=f"Rate limit exceeded. Retry after {rate_limit['retry_after']} seconds"
-        )
-
     try:
         response = supabase.auth.sign_in_with_password({
             "email": request.email,
@@ -141,14 +127,6 @@ async def login(request: LoginRequest):
             }).eq("id", response.user.id).execute()
 
             access_token = create_access_token(response.user.id, request.email)
-
-            from core.security import audit_logger
-            audit_logger.log(
-                action="auth.login",
-                user_id=response.user.id,
-                resource="auth",
-                details={"email": request.email}
-            )
 
             return AuthResponse(
                 success=True,

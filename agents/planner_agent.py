@@ -2,23 +2,19 @@ import re
 from agents.response_agent import get_response
 
 
-PLANNER_SYSTEM_PROMPT = """You are an intent classifier. Given a user question, determine the BEST route(s).
+PLANNER_SYSTEM_PROMPT = """You are an intent classifier. Given a user question, determine the BEST route.
 
 Routes:
-- CHAT: Greetings, small talk, opinions, explanations from general knowledge, opinions, advice
+- CHAT: Greetings, small talk, opinions, explanations from general knowledge, advice
 - RAG: Questions about uploaded documents, notes, PDFs, specific content from files
 - WEB: Current events, real-time info, weather, prices, recent news, facts needing fresh data
-- RESEARCH: Complex questions needing multiple sources, comparisons, deep analysis
-- TOOL: Math calculations, code execution, data processing, file operations
 
 Rules:
 1. If the user references "uploaded", "document", "notes", "PDF" → RAG
 2. If asking about current/recent/today/live → WEB
-3. If math expression or calculation → TOOL
-4. If complex analysis needing multiple angles → RESEARCH
-5. Default to the most specific route
+3. Default to the most specific route
 
-Return ONLY the route name on a single line: CHAT, RAG, WEB, RESEARCH, or TOOL"""
+Return ONLY the route name on a single line: CHAT, RAG, or WEB"""
 
 
 def planner(question: str, history: list = None) -> str:
@@ -30,11 +26,6 @@ def planner(question: str, history: list = None) -> str:
     for pattern, route in fast_patterns:
         if re.match(pattern, q):
             return route
-
-    if re.search(r'\d+\s*[%x*/+\-]\s*\d+', q):
-        return "TOOL"
-    if re.search(r'(what is|what\'s)\s+\d', q) and any(op in q for op in ['%', 'plus', 'minus', 'times', 'divided']):
-        return "TOOL"
 
     history_context = ""
     if history:
@@ -52,7 +43,7 @@ def planner(question: str, history: list = None) -> str:
         response = get_response(prompt, system_prompt=PLANNER_SYSTEM_PROMPT)
         route = response.strip().upper().split()[0] if response.strip() else "RAG"
 
-        valid_routes = {"CHAT", "RAG", "WEB", "RESEARCH", "TOOL"}
+        valid_routes = {"CHAT", "RAG", "WEB"}
         if route not in valid_routes:
             route = "RAG"
 
@@ -64,8 +55,6 @@ def planner(question: str, history: list = None) -> str:
 def _fallback_planner(q: str) -> str:
     if any(w in q for w in ["latest", "today", "news", "weather", "current", "price"]):
         return "WEB"
-    if any(w in q for w in ["calculate", "math", "compute", "% of"]):
-        return "TOOL"
     if any(w in q for w in ["hi", "hello", "hey", "thanks"]):
         return "CHAT"
     return "RAG"

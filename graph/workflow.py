@@ -7,9 +7,6 @@ from graph.nodes import (
     chat_node,
     rag_node,
     web_node,
-    research_node,
-    tool_node,
-    hybrid_node,
     validator_node,
     save_node
 )
@@ -21,9 +18,6 @@ workflow.add_node("planner", planner_node)
 workflow.add_node("chat", chat_node)
 workflow.add_node("rag", rag_node)
 workflow.add_node("web", web_node)
-workflow.add_node("research", research_node)
-workflow.add_node("tool", tool_node)
-workflow.add_node("hybrid", hybrid_node)
 workflow.add_node("validator", validator_node)
 workflow.add_node("save", save_node)
 
@@ -42,18 +36,12 @@ workflow.add_conditional_edges(
         "CHAT": "chat",
         "RAG": "rag",
         "WEB": "web",
-        "RESEARCH": "research",
-        "TOOL": "tool",
     },
 )
 
 workflow.add_edge("chat", "validator")
 workflow.add_edge("rag", "validator")
 workflow.add_edge("web", "validator")
-workflow.add_edge("research", "validator")
-workflow.add_edge("tool", "validator")
-workflow.add_edge("hybrid", "validator")
-
 
 def validator_route(state):
     if state["valid"]:
@@ -61,14 +49,9 @@ def validator_route(state):
 
     routes_tried = state.get("routes_tried", [])
 
-    if "RAG" in routes_tried and "WEB" not in routes_tried:
-        return "WEB"
-
-    if "WEB" in routes_tried and "RAG" not in routes_tried:
-        return "HYBRID_WEB_RAG"
-
-    if "HYBRID" not in routes_tried and len(routes_tried) >= 1:
-        return "HYBRID"
+    for route in ("RAG", "WEB"):
+        if route not in routes_tried:
+            return route
 
     return "SAVE"
 
@@ -78,10 +61,11 @@ workflow.add_conditional_edges(
     validator_route,
     {
         "SAVE": "save",
+        "RAG": "rag",
         "WEB": "web",
-        "HYBRID": "hybrid",
-        "HYBRID_WEB_RAG": "rag",
     },
 )
+
+workflow.add_edge("save", END)
 
 graph = workflow.compile()

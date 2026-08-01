@@ -1,17 +1,15 @@
 import json
 import time
 import asyncio
-from fastapi import FastAPI, Request, Depends
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
+from typing import Optional
 from api.upload import router as upload_router
 from api.auth import router as auth_router
-from middleware.rate_limiter import RateLimitMiddleware, rate_limiter
 from app.dependencies import get_current_user
-from monitoring.metrics import metrics, tracker, sync_prometheus_metrics
-from core import config_manager
-from typing import Optional
+from app.config import settings
 
 app = FastAPI(
     title="LLMOps Multi-Agent Platform",
@@ -31,20 +29,9 @@ app.include_router(auth_router)
 app.include_router(upload_router)
 
 
-def _add_prometheus(app):
-    try:
-        from monitoring.prometheus_metrics import PrometheusMiddleware
-        app.add_middleware(PrometheusMiddleware)
-    except Exception as e:
-        print(f"Prometheus middleware not enabled: {e}")
-
-
-_add_prometheus(app)
-
-
 @app.on_event("startup")
 async def startup_event():
-    print(f"Server starting in {config_manager.env.value} mode")
+    print(f"Server starting in {settings.ENV} mode")
     loop = asyncio.get_event_loop()
     await loop.run_in_executor(None, _warmup_models)
     print("Server ready - models loaded")
@@ -70,7 +57,7 @@ async def home():
     return {
         "message": "Welcome to LLMOps Multi-Agent Platform",
         "version": "1.0.0",
-        "environment": config_manager.env.value,
+        "environment": settings.ENV,
         "endpoints": {
             "auth": {
                 "signup": "POST /auth/signup",
@@ -82,11 +69,6 @@ async def home():
             "chat_stream": "POST /chat/stream",
             "upload": "POST /upload",
             "history": "GET /history/{session_id}",
-            "monitoring": {
-                "metrics": "GET /metrics",
-                "prometheus": "GET /prometheus/metrics",
-                "system": "GET /system/status"
-            },
             "docs": "GET /docs"
         }
     }
@@ -104,9 +86,7 @@ async def health_check():
         return {
             "status": "healthy",
             "database": "connected",
-            "environment": config_manager.env.value,
-            "uptime": metrics.get_uptime(),
-            "total_queries": metrics._query_count
+            "environment": settings.ENV
         }
     except Exception as e:
         return {"status": "unhealthy", "database": str(e)}
@@ -117,51 +97,15 @@ async def chat(
     request: ChatRequest,
     user: Optional[dict] = Depends(get_current_user)
 ):
-    from core.security import InputSanitizer, security_middleware
-    from core.security import audit_logger
-
-    validation = security_middleware.validate_request({
-        "session_id": request.session_id,
-        "message": request.message
-    })
-
-    if not validation["valid"]:
-        audit_logger.log(
-            action="chat.rejected",
-            user_id=user["email"] if user else "anonymous",
-            details={"errors": validation["errors"], "message_length": len(request.message)}
-        )
-        return {"success": False, "errors": validation["errors"]}
-
-    sanitized_message = InputSanitizer.sanitize_text(request.message)
-
     t0 = time.time()
 
     loop = asyncio.get_event_loop()
     result = await loop.run_in_executor(
         None,
-        lambda: _run_graph(request.session_id, sanitized_message)
+        lambda: _run_graph(request.session_id, request.message)
     )
 
     latency_ms = (time.time() - t0) * 1000
-
-    metrics.record_query(
-        route=result["route"],
-        latency_ms=latency_ms,
-        is_valid=True,
-        agent_name=result["route"]
-    )
-
-    audit_logger.log(
-        action="chat.completed",
-        user_id=user["email"] if user else "anonymous",
-        resource=result["route"],
-        details={
-            "message_length": len(sanitized_message),
-            "response_length": len(result["answer"]),
-            "latency_ms": round(latency_ms, 2)
-        }
-    )
 
     return {
         "success": True,
@@ -232,91 +176,3 @@ async def history(
         "data": data,
         "user": user["email"] if user else "anonymous"
     }
-
-
-@app.get("/metrics")
-async def get_metrics():
-    return {
-        "success": True,
-        "data": metrics.get_summary()
-    }
-
-
-@app.get("/prometheus/metrics")
-async def get_prometheus_metrics():
-    from fastapi.responses import Response
-    from monitoring.prometheus_metrics import metrics_response
-    sync_prometheus_metrics()
-    body, content_type = metrics_response()
-    return Response(content=body, media_type=content_type)
-
-
-@app.get("/system/status")
-async def system_status():
-    return {
-        "success": True,
-        "data": {
-            "environment": config_manager.env.value,
-            "features": {
-                "auth": config_manager.config.features.enable_auth,
-                "rate_limiting": config_manager.config.features.enable_rate_limiting,
-                "monitoring": config_manager.config.features.enable_monitoring,
-                "streaming": config_manager.config.features.enable_streaming,
-                "caching": config_manager.config.features.enable_caching
-            }
-        }
-    }
-
-
-@app.get("/system/audit")
-async def system_audit(
-    limit: int = 100,
-    action: Optional[str] = None,
-    user_id: Optional[str] = None
-):
-    from core.security import audit_logger
-    entries = audit_logger.get_entries(
-        user_id=user_id,
-        action=action,
-        limit=max(1, min(limit, 1000))
-    )
-    return {"success": True, "data": entries}
-
-
-@app.get("/system/audit/stats")
-async def system_audit_stats():
-    from core.security import audit_logger
-    return {"success": True, "data": audit_logger.get_stats()}
-
-
-@app.get("/cache/stats")
-async def cache_stats():
-    from rag.embeddings import embedding_cache
-    from tools.web_search import get_cached_queries
-    return {
-        "success": True,
-        "data": {
-            "embedding_cache_size": embedding_cache.size(),
-            "web_search_cache": get_cached_queries()
-        }
-    }
-
-
-@app.post("/cache/clear")
-async def clear_cache():
-    from rag.embeddings import embedding_cache
-    from tools.web_search import clear_search_cache
-    embedding_cache.clear()
-    clear_search_cache()
-    return {"success": True, "message": "All caches cleared"}
-
-
-@app.get("/rate-limit/stats")
-async def rate_limit_stats():
-    return {"success": True, "data": rate_limiter.get_stats()}
-
-
-@app.post("/metrics/reset")
-async def reset_metrics():
-    metrics.reset()
-    return {"success": True, "message": "Metrics reset successfully"}

@@ -116,28 +116,6 @@ class VectorStore:
     def count(self) -> int:
         return self.collection.count()
 
-    def count_by_filename(self, filename: str) -> int:
-
-        results = self.collection.get(
-            where={"document": filename},
-            include=["metadatas"]
-        )
-
-        return len(results["ids"]) if results["ids"] else 0
-
-    def list_filenames(self) -> list:
-
-        all_docs = self.collection.get(include=["metadatas"])
-
-        if not all_docs["metadatas"]:
-            return []
-
-        filenames = set()
-        for meta in all_docs["metadatas"]:
-            filenames.add(meta["document"])
-
-        return sorted(list(filenames))
-
     def get_stats(self) -> dict:
 
         all_docs = self.collection.get(include=["metadatas"])

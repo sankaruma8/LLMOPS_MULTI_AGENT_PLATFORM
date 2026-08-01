@@ -16,8 +16,6 @@ services:
         generateValue: true
       - key: TAVILY_API_KEY
         sync: false
-      - key: LANGCHAIN_TRACING_V2
-        value: "false"
       - key: APP_WORKERS
         value: "2"
       - key: APP_ENV
@@ -36,30 +34,3 @@ services:
           type: web
           property: host
     autoDeploy: true
-
-  - type: web
-    name: llmops-prometheus
-    runtime: docker
-    dockerfilePath: Dockerfile.prometheus
-    plan: free
-    envVars:
-      - key: API_HOST
-        fromService:
-          name: llmops-api
-          type: web
-          property: host
-    autoDeploy: false
-
-  - type: web
-    name: llmops-grafana
-    runtime: docker
-    dockerfilePath: Dockerfile.grafana
-    plan: free
-    envVars:
-      - key: GF_SECURITY_ADMIN_USER
-        value: admin
-      - key: GF_SECURITY_ADMIN_PASSWORD
-        sync: false
-      - key: GF_USERS_ALLOW_SIGN_UP
-        value: "false"
-    autoDeploy: false

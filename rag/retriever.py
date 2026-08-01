@@ -10,8 +10,8 @@ class Retriever:
             path="./chroma_db"
         )
 
-        self.collection = self.client.get_collection(
-            "documents"
+        self.collection = self.client.get_or_create_collection(
+            name="documents"
         )
 
     def retrieve(self, query_embedding: list, top_k: int = 5, filename: Optional[str] = None):

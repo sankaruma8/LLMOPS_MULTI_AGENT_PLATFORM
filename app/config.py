@@ -11,8 +11,10 @@ class Settings:
     SUPABASE_URL = os.getenv("SUPABASE_URL")
     SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
-    SECRET_KEY = os.getenv("SECRET_KEY")
+    SECRET_KEY = os.getenv("SECRET_KEY", "default-secret-key")
     TAVILY_API_KEY = os.getenv("TAVILY_API_KEY")
+
+    ENV = os.getenv("APP_ENV", "development")
 
 
 settings = Settings()
