@@ -15,10 +15,9 @@ logs/
 mlruns/
 dataset/
 
-# Test files (not needed in production)
-test_*.py
+# Test artifacts
 test_*.log
-tests/
+.pytest_cache
 temp_*.json
 start_server*.py
 error.log
@@ -27,7 +26,6 @@ stdout.log
 stderr.log
 
 # Build artifacts
-.pytest_cache
 .coverage
 htmlcov
 *.egg-info
@@ -56,4 +54,3 @@ grafana_data/
 # Docs
 database/schema*.sql
 Makefile
-README.md

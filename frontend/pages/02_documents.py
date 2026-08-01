@@ -38,11 +38,11 @@ with tab1:
                     result = data.get("data", {})
                     st.success(f"Uploaded: {uploaded_file.name}")
                     col1, col2, col3 = st.columns(3)
-                    col1.metric("Chunks", result.get("chunk_count", 0))
-                    col2.metric("Pages", result.get("page_count", 0))
+                    col1.metric("Chunks", result.get("chunks", 0))
+                    col2.metric("Pages", result.get("pages", 0))
                     col3.metric("Version", result.get("version", 1))
 
-                    if result.get("is_duplicate"):
+                    if result.get("status") == "duplicate":
                         st.info("Note: This file was already uploaded (duplicate detected)")
                 else:
                     st.error(f"Upload failed: {data.get('error', 'Unknown error')}")

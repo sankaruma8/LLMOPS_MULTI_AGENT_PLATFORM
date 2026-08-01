@@ -4,7 +4,6 @@ from typing import Optional
 from database.supabase_client import supabase
 from app.config import settings
 import jwt
-import time
 from datetime import datetime, timedelta
 
 
@@ -189,7 +188,7 @@ async def refresh_token(request: TokenRefreshRequest):
             message="Token refresh failed"
         )
 
-    except Exception as e:
+    except Exception:
         raise HTTPException(status_code=401, detail="Invalid refresh token")
 
 
@@ -201,13 +200,8 @@ async def logout(request: Request):
     if not auth_header or not auth_header.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Not authenticated")
 
-    token = auth_header.split(" ")[1]
-
     try:
-        payload = verify_token(token)
-
         supabase.auth.sign_out()
-
         return AuthResponse(
             success=True,
             message="Logged out successfully"
@@ -215,7 +209,7 @@ async def logout(request: Request):
 
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         return AuthResponse(
             success=True,
             message="Logged out successfully"

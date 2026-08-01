@@ -1,4 +1,4 @@
-from prompts.validator_prompt import validate_answer, FAILURE_PHRASES
+from prompts.validator_prompt import FAILURE_PHRASES
 
 
 def validate_answer_standalone(answer: str) -> bool:

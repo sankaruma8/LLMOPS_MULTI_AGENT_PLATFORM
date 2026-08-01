@@ -43,6 +43,7 @@ def _warmup_models():
     EmbeddingModel()
     print("Loading graph workflow...", flush=True)
     from graph.workflow import graph
+    assert graph is not None
     print("Models loaded.", flush=True)
 
 
@@ -81,7 +82,7 @@ async def health_check():
         loop = asyncio.get_event_loop()
         await loop.run_in_executor(
             None,
-            lambda: supabase.table("user_memory").select("id").limit(1).execute()
+            lambda: supabase.table("chat_history").select("id").limit(1).execute()
         )
         return {
             "status": "healthy",

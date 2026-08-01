@@ -12,18 +12,23 @@ retriever_agent = RetrieverAgent()
 
 def memory_node(state):
     session_id = state["session_id"]
-    state["history"] = memory_manager.get_optimized_history(session_id)
     state["rag_context"] = ""
     state["web_context"] = ""
     state["available_docs"] = []
     state["routes_tried"] = []
 
     try:
+        state["history"] = memory_manager.get_optimized_history(session_id)
+    except Exception as e:
+        print(f"Failed to load history: {e}")
+        state["history"] = []
+
+    try:
         state["available_docs"] = retriever_agent.retriever.get_all_documents()
     except Exception:
         state["available_docs"] = []
 
-    print(f"\n=== MEMORY NODE ===")
+    print("\n=== MEMORY NODE ===")
     print(f"Session: {session_id}")
     print(f"History messages: {len(state['history'])}")
     print(f"Available docs: {len(state['available_docs'])}")
@@ -149,9 +154,12 @@ def validator_node(state):
 def save_node(state):
     print("\n=== SAVE NODE ===")
     if state.get("answer"):
-        save_message(state["session_id"], "user", state["question"])
-        save_message(state["session_id"], "assistant", state["answer"])
-        print("Conversation Saved Successfully!")
+        try:
+            save_message(state["session_id"], "user", state["question"])
+            save_message(state["session_id"], "assistant", state["answer"])
+            print("Conversation Saved Successfully!")
+        except Exception as e:
+            print(f"Failed to save conversation: {e}")
     else:
         print("No answer to save.")
     return state

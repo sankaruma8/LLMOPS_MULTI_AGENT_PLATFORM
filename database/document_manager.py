@@ -1,5 +1,4 @@
 import hashlib
-import os
 from datetime import datetime
 from database.supabase_client import supabase
 
