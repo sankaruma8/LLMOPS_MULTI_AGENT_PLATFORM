@@ -110,6 +110,7 @@ tests/           unit tests
 
 | Document | Contents |
 |----------|----------|
+| [DOCUMENTATION.md](DOCUMENTATION.md) | Complete single-file documentation (intro → architecture → setup → API → deploy) |
 | [docs/setup.md](docs/setup.md) | Installation, environment, Supabase tables, running locally, deploy |
 | [docs/architecture.md](docs/architecture.md) | System design, components, data flow |
 | [docs/api_reference.md](docs/api_reference.md) | Endpoint-by-endpoint API reference |
